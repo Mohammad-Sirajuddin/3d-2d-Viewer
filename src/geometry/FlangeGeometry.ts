@@ -1,19 +1,23 @@
 import type { flangeParams } from "../types/flange";
 
-
-export type Point2D = { x: number; y: number }
+export type Point2D = { x: number; y: number };
 
 export function computeBoltCenters(
   boltCount: number,
   boltCircleRadius: number
 ): Point2D[] {
-  return Array.from({ length: boltCount }, (_, i) => {
-    const angle = (i / boltCount) * Math.PI * 2
-    return {
+  const points: Point2D[] = [];
+
+  for (let i = 0; i < boltCount; i++) {
+    const angle = (i / boltCount) * Math.PI * 2;
+
+    points.push({
       x: Math.cos(angle) * boltCircleRadius,
       y: Math.sin(angle) * boltCircleRadius,
-    }
-  })
+    });
+  }
+
+  return points;
 }
 
 export function computeFlangeGeometry(p: flangeParams) {
@@ -23,5 +27,5 @@ export function computeFlangeGeometry(p: flangeParams) {
     thickness: p.thickness,
     boltHoleRadius: p.boltHoleRadius,
     bolts: computeBoltCenters(p.boltCount, p.boltCircleRadius),
-  }
+  };
 }
