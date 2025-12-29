@@ -18,7 +18,7 @@ export function Flange2DSVG({ params }: { params: flangeParams }) {
         r={geo.outerRadius}
         fill="none"
         stroke="black"
-        strokeWidth={2}
+        strokeWidth={0.5}
       />
 
       {/* Inner bore */}
@@ -26,7 +26,7 @@ export function Flange2DSVG({ params }: { params: flangeParams }) {
         r={geo.innerRadius}
         fill="none"
         stroke="black"
-        strokeWidth={2}
+        strokeWidth={0.5}
       />
 
       {/* Bolt holes */}
@@ -38,7 +38,7 @@ export function Flange2DSVG({ params }: { params: flangeParams }) {
           r={geo.boltHoleRadius}
           fill="none"
           stroke="black"
-          strokeWidth={1}
+          strokeWidth={0.5}
         />
       ))}
     </svg>

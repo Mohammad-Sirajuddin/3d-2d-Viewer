@@ -4,13 +4,14 @@ import { Flange3D } from "./components/Flange3d";
 import { Flange2DSVG } from "./components/Flange2d";
 import { useState } from "react";
 import { Box, TextField } from "@mui/material";
-import { computeBoltCount, getMaxBoltHoleRadius } from "./geometry/FlangeGeometry";
-
+import {
+  computeBoltCount,
+  getMaxBoltHoleRadius,
+} from "./geometry/FlangeGeometry";
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
-
 
 function App() {
   const [params, setParams] = useState({
@@ -21,62 +22,85 @@ function App() {
     boltCount: 12,
     boltCircleRadius: 70,
   });
+  
+  function updateParam(key: keyof typeof params, rawValue: number) {
+  setParams((prev) => {
+    let p = { ...prev };
+    let value = rawValue;
 
-  function updateParam(
-    key: keyof typeof params,
-    rawValue: number
-  ) {
-    setParams((prev) => {
-      const p = { ...prev };
-      let value = rawValue;
+    if (key === "outerRadius") {
+      value = clamp(value, p.boltCircleRadius + p.boltHoleRadius*2, 150);
+      p.outerRadius = value;
 
-      /* ---- OUTER RADIUS ---- */
-      if (key === "outerRadius") {
-        value = clamp(value, 50, 300);
+      // adjust dependent parameters if invalid
+      if (p.boltCircleRadius > p.outerRadius - p.boltHoleRadius * 2) {
+        p.boltCircleRadius = p.outerRadius - p.boltHoleRadius * 2;
       }
-
-      /* ---- INNER RADIUS ---- */
-      else if (key === "innerRadius") {
-        value = clamp(value, 10, p.outerRadius - 10);
+      const maxHole = getMaxBoltHoleRadius(p.innerRadius, p.outerRadius, p.boltCircleRadius);
+      if (p.boltHoleRadius > maxHole) {
+        p.boltHoleRadius = maxHole;
       }
-
-      /* ---- THICKNESS ---- */
-      else if (key === "thickness") {
-        value = clamp(value, 5, p.outerRadius * 0.3);
+      const maxBolts = computeBoltCount(p.boltCircleRadius, p.boltHoleRadius);
+      if (p.boltCount > maxBolts) {
+        p.boltCount = maxBolts;
       }
+    }
 
-      /* ---- BOLT CIRCLE RADIUS ---- */
-      else if (key === "boltCircleRadius") {
-        const minBCR =
-          p.innerRadius + p.boltHoleRadius * 2;
-        const maxBCR =
-          p.outerRadius - p.boltHoleRadius * 2;
-        value = clamp(value, minBCR, maxBCR);
+    else if (key === "innerRadius") {
+      value = clamp(value, 10, p.boltCircleRadius - p.boltHoleRadius*2);
+      p.innerRadius = value;
+
+      if (p.boltCircleRadius < p.innerRadius + p.boltHoleRadius * 2) {
+        p.boltCircleRadius = p.innerRadius + p.boltHoleRadius * 2;
       }
-
-      /* ---- BOLT HOLE RADIUS ---- */
-      else if (key === "boltHoleRadius") {
-        const maxHole = getMaxBoltHoleRadius(
-          p.innerRadius,
-          p.outerRadius,
-          p.boltCircleRadius
-        );
-        value = clamp(value, 2, maxHole);
+      const maxHole = getMaxBoltHoleRadius(p.innerRadius, p.outerRadius, p.boltCircleRadius);
+      if (p.boltHoleRadius > maxHole) {
+        p.boltHoleRadius = maxHole;
       }
+    }
 
-      /* ---- BOLT COUNT ---- */
-      else if (key === "boltCount") {
-        const maxBolts = computeBoltCount(
-          p.boltCircleRadius,
-          p.boltHoleRadius
-        );
-        value = clamp(Math.round(value), 4, maxBolts);
+    else if (key === "boltCircleRadius") {
+      const minBCR = p.innerRadius + p.boltHoleRadius * 2;
+      const maxBCR = p.outerRadius - p.boltHoleRadius * 2;
+      value = clamp(value, minBCR, maxBCR);
+      p.boltCircleRadius = value;
+
+      const maxHole = getMaxBoltHoleRadius(p.innerRadius, p.outerRadius, p.boltCircleRadius);
+      if (p.boltHoleRadius > maxHole) {
+        p.boltHoleRadius = maxHole;
       }
+      const maxBolts = computeBoltCount(p.boltCircleRadius, p.boltHoleRadius);
+      if (p.boltCount > maxBolts) {
+        p.boltCount = maxBolts;
+      }
+    }
 
-      p[key] = value;
-      return p;
-    });
-  }
+    else if (key === "boltHoleRadius") {
+      const maxHole = getMaxBoltHoleRadius(p.innerRadius, p.outerRadius, p.boltCircleRadius);
+      value = clamp(value, 2, maxHole);
+      p.boltHoleRadius = value;
+
+      const maxBolts = computeBoltCount(p.boltCircleRadius, p.boltHoleRadius);
+      if (p.boltCount > maxBolts) {
+        p.boltCount = maxBolts;
+      }
+    }
+
+    else if (key === "thickness") {
+      value = clamp(value, 5, p.outerRadius * 0.3);
+      p.thickness = value;
+    }
+
+    else if (key === "boltCount") {
+      const maxBolts = computeBoltCount(p.boltCircleRadius, p.boltHoleRadius);
+      value = clamp(Math.round(value), 4, maxBolts);
+      p.boltCount = value;
+    }
+
+    return p;
+  });
+}
+
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
@@ -86,54 +110,42 @@ function App() {
           label="Outer Radius"
           type="number"
           value={params.outerRadius}
-          onChange={(e) =>
-            updateParam("outerRadius", +e.target.value)
-          }
+          onChange={(e) => updateParam("outerRadius", +e.target.value)}
         />
 
         <TextField
           label="Inner Radius"
           type="number"
           value={params.innerRadius}
-          onChange={(e) =>
-            updateParam("innerRadius", +e.target.value)
-          }
+          onChange={(e) => updateParam("innerRadius", +e.target.value)}
         />
 
         <TextField
           label="Thickness"
           type="number"
           value={params.thickness}
-          onChange={(e) =>
-            updateParam("thickness", +e.target.value)
-          }
+          onChange={(e) => updateParam("thickness", +e.target.value)}
         />
 
         <TextField
           label="Bolt Circle Radius"
           type="number"
           value={params.boltCircleRadius}
-          onChange={(e) =>
-            updateParam("boltCircleRadius", +e.target.value)
-          }
+          onChange={(e) => updateParam("boltCircleRadius", +e.target.value)}
         />
 
         <TextField
           label="Bolt Hole Radius"
           type="number"
           value={params.boltHoleRadius}
-          onChange={(e) =>
-            updateParam("boltHoleRadius", +e.target.value)
-          }
+          onChange={(e) => updateParam("boltHoleRadius", +e.target.value)}
         />
 
         <TextField
           label="Bolt Count"
           type="number"
           value={params.boltCount}
-          onChange={(e) =>
-            updateParam("boltCount", +e.target.value)
-          }
+          onChange={(e) => updateParam("boltCount", +e.target.value)}
         />
       </Box>
 
