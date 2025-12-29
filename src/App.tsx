@@ -1,79 +1,144 @@
-import { Canvas } from "@react-three/fiber"
-import { OrbitControls } from "@react-three/drei"
-import { Flange3D } from "./components/Flange3d"
-import { Flange2DSVG } from "./components/Flange2d"
-import { useState } from "react"
-import { Box, TextField } from "@mui/material"
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
+import { Flange3D } from "./components/Flange3d";
+import { Flange2DSVG } from "./components/Flange2d";
+import { useState } from "react";
+import { Box, TextField } from "@mui/material";
+import { computeBoltCount, getMaxBoltHoleRadius } from "./geometry/FlangeGeometry";
+
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
 
 function App() {
-  const [OuterRadius, setOuterRadius] = useState(100)
-  const [InnerRadius, setInnerRadius] = useState(40)
-  const [Thickness, setThickness] = useState(20)
-  const [BoltHoleRadius, setBoltHoleRadius] = useState(6)
-  const [BoltCount, setBoltCount] = useState(12)
-  const [BoltCircleRadius, setBoltCircleRadius] = useState(70)
+  const [params, setParams] = useState({
+    outerRadius: 100,
+    innerRadius: 40,
+    thickness: 20,
+    boltHoleRadius: 6,
+    boltCount: 12,
+    boltCircleRadius: 70,
+  });
 
-  const params = {
-    outerRadius: OuterRadius,
-    innerRadius: InnerRadius,
-    thickness: Thickness,
-    boltHoleRadius: BoltHoleRadius,
-    boltCount: BoltCount,
-    boltCircleRadius: BoltCircleRadius,
+  function updateParam(
+    key: keyof typeof params,
+    rawValue: number
+  ) {
+    setParams((prev) => {
+      const p = { ...prev };
+      let value = rawValue;
+
+      /* ---- OUTER RADIUS ---- */
+      if (key === "outerRadius") {
+        value = clamp(value, 50, 300);
+      }
+
+      /* ---- INNER RADIUS ---- */
+      else if (key === "innerRadius") {
+        value = clamp(value, 10, p.outerRadius - 10);
+      }
+
+      /* ---- THICKNESS ---- */
+      else if (key === "thickness") {
+        value = clamp(value, 5, p.outerRadius * 0.3);
+      }
+
+      /* ---- BOLT CIRCLE RADIUS ---- */
+      else if (key === "boltCircleRadius") {
+        const minBCR =
+          p.innerRadius + p.boltHoleRadius * 2;
+        const maxBCR =
+          p.outerRadius - p.boltHoleRadius * 2;
+        value = clamp(value, minBCR, maxBCR);
+      }
+
+      /* ---- BOLT HOLE RADIUS ---- */
+      else if (key === "boltHoleRadius") {
+        const maxHole = getMaxBoltHoleRadius(
+          p.innerRadius,
+          p.outerRadius,
+          p.boltCircleRadius
+        );
+        value = clamp(value, 2, maxHole);
+      }
+
+      /* ---- BOLT COUNT ---- */
+      else if (key === "boltCount") {
+        const maxBolts = computeBoltCount(
+          p.boltCircleRadius,
+          p.boltHoleRadius
+        );
+        value = clamp(Math.round(value), 4, maxBolts);
+      }
+
+      p[key] = value;
+      return p;
+    });
   }
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      {/* Header / Controls */}
-      <Box
-        sx={{
-          display: "flex",
-          gap: 2,
-          p: 2,
-          flexWrap: "wrap",
-        }}
-      >
+      {/* Controls */}
+      <Box sx={{ display: "flex", gap: 2, p: 2, flexWrap: "wrap" }}>
         <TextField
           label="Outer Radius"
           type="number"
-          value={OuterRadius}
-          onChange={(e) => setOuterRadius(Number(e.target.value))}
+          value={params.outerRadius}
+          onChange={(e) =>
+            updateParam("outerRadius", +e.target.value)
+          }
         />
+
         <TextField
           label="Inner Radius"
           type="number"
-          value={InnerRadius}
-          onChange={(e) => setInnerRadius(Number(e.target.value))}
+          value={params.innerRadius}
+          onChange={(e) =>
+            updateParam("innerRadius", +e.target.value)
+          }
         />
+
         <TextField
           label="Thickness"
           type="number"
-          value={Thickness}
-          onChange={(e) => setThickness(Number(e.target.value))}
+          value={params.thickness}
+          onChange={(e) =>
+            updateParam("thickness", +e.target.value)
+          }
         />
-        <TextField
-          label="Bolt Hole Radius"
-          type="number"
-          value={BoltHoleRadius}
-          onChange={(e) => setBoltHoleRadius(Number(e.target.value))}
-        />
+
         <TextField
           label="Bolt Circle Radius"
           type="number"
-          value={BoltCircleRadius}
-          onChange={(e) => setBoltCircleRadius(Number(e.target.value))}
+          value={params.boltCircleRadius}
+          onChange={(e) =>
+            updateParam("boltCircleRadius", +e.target.value)
+          }
         />
+
+        <TextField
+          label="Bolt Hole Radius"
+          type="number"
+          value={params.boltHoleRadius}
+          onChange={(e) =>
+            updateParam("boltHoleRadius", +e.target.value)
+          }
+        />
+
         <TextField
           label="Bolt Count"
           type="number"
-          value={BoltCount}
-          onChange={(e) => setBoltCount(Number(e.target.value))}
+          value={params.boltCount}
+          onChange={(e) =>
+            updateParam("boltCount", +e.target.value)
+          }
         />
       </Box>
 
       {/* Views */}
       <Box sx={{ flex: 1, display: "flex" }}>
-        {/* 3D View */}
         <Box sx={{ flex: 1 }}>
           <Canvas camera={{ position: [0, 150, 250], fov: 45 }}>
             <color attach="background" args={["#f0f0f0"]} />
@@ -84,13 +149,12 @@ function App() {
           </Canvas>
         </Box>
 
-        {/* 2D View */}
         <Box sx={{ flex: 1 }}>
           <Flange2DSVG params={params} />
         </Box>
       </Box>
     </Box>
-  )
+  );
 }
 
-export default App
+export default App;

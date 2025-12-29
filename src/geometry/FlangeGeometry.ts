@@ -29,3 +29,26 @@ export function computeFlangeGeometry(p: flangeParams) {
     bolts: computeBoltCenters(p.boltCount, p.boltCircleRadius),
   };
 }
+
+export function computeBoltCount(boltCircleRadius: number, boltHoleRadius: number) {
+  const minSpacing = boltHoleRadius * 2 
+  const circumference = 2 * Math.PI * boltCircleRadius
+  let count = Math.floor(circumference / minSpacing)   
+
+  return count
+}
+
+export function getMaxBoltHoleRadius(
+  innerRadius: number,
+  outerRadius: number,
+  boltCircleRadius: number
+) {
+  const MIN_HOLE = 2;
+
+  const freeSpace = Math.min(
+    boltCircleRadius - innerRadius,
+    outerRadius - boltCircleRadius
+  );
+
+  return Math.max(MIN_HOLE, freeSpace * 0.5);
+}
